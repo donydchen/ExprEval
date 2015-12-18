@@ -16,8 +16,7 @@ import exceptions.*;
 public class Calculator
 {
 	/**
-	 * The main program of the parser. You should substitute the body of this method 
-	 * with your experiment result. 
+	 * The main program of the parser.
 	 * 
 	 * @param expression  user input to the calculator from GUI. 
 	 * @return  if the expression is well-formed, return the evaluation result of it. 

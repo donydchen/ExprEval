@@ -1,5 +1,10 @@
 package lexer;
 
+/**
+ * 所有词法单元的父类。
+ * @author Donald
+ *
+ */
 public class Token {
 	protected String type;
 

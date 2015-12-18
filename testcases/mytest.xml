@@ -1,0 +1,117 @@
+﻿<?xml version="1.0"?>
+<!-- Standard test cases for EvalExpr -->
+<test-case-definitions>
+
+<test-case>
+	<id>C001</id>
+	<description>LexicalException.</description>
+	<input>((5 @ 4) ? 7 : 8</input>
+	<exception>IllegalSymbolException</exception>
+</test-case>
+
+<test-case>
+	<id>C002</id>
+	<description>Right parenthesis expected.</description>
+	<input>((12 12</input>
+	<exception>MissingRightParenthesisException</exception>
+</test-case>
+
+<test-case>
+	<id>C003</id>
+	<description>Operator expected.</description>
+	<input>(1 + 2) ^ (3 - 4)  5</input>
+	<exception>MissingOperatorException</exception>
+</test-case>
+
+<test-case>
+	<id>C004</id>
+	<description>Operand expected.</description>
+	<input>(1 + 2) ^ (3 - ) + 5</input>
+	<exception>MissingOperandException</exception>
+</test-case>
+
+<test-case>
+	<id>C005</id>
+	<description>Divided by 0.</description>
+	<input>4 / (12 - 3 * 4) + 1</input>
+	<exception>DividedByZeroException</exception>
+</test-case>
+
+<test-case>
+	<id>C006</id>
+	<description>Type mismatched.</description>
+	<input><![CDATA[(13 < 2 * 5) + 12]]></input>
+	<exception>TypeMismatchedException</exception>
+</test-case>
+
+<test-case>
+	<id>C007</id>
+	<description>Scientific Notation Error.</description>
+	<input>4 + 10.E+5 + 1</input>
+	<exception>IllegalDecimalException</exception>
+</test-case>
+
+<test-case>
+	<id>C008</id>
+	<description>Not a predefined identifier.</description>
+	<input>4 + mix(5, 2) + 1</input>
+	<exception>IllegalIdentifierException</exception>
+</test-case>
+
+<test-case>
+	<id>C009</id>
+	<description>Function call error.</description>
+	<input>sin(2, 1)</input>
+	<exception>FunctionCallException</exception>
+</test-case>
+
+<test-case>
+	<id>C010</id>
+	<description>Function call error.</description>
+	<input>min(2.5)</input>
+	<exception>MissingOperandException</exception>
+</test-case>
+
+<test-case>
+	<id>C011</id>
+	<description>SyntacticException.</description>
+	<input>3.14 * 2 >= 2.5 * 3 ? (6 : 7) + 8</input>
+	<exception>TrinaryOperationException</exception>
+</test-case>
+
+<test-case>
+	<id>C012</id>
+	<description>A simple expression.</description>
+	<input>3125e-6*-8+-6*max(sin(1.2),cos(3.6),(4+2>5)?min(2,10/3-2):6)</input>
+	<output>-8.025</output>
+</test-case>
+
+<test-case>
+	<id>C013</id>
+	<description>SyntacticException.</description>
+	<input>(2 + 3) ^ 3) - ((1 + 1)</input>
+	<exception>MissingLeftParenthesisException</exception>
+</test-case>
+
+<test-case>
+	<id>C014</id>
+	<description>SyntacticException.</description>
+	<input>((2 + 3) ^ ((3 - 1) + 1)</input>
+	<exception>MissingRightParenthesisException</exception>
+</test-case>
+
+<test-case>
+	<id>C015</id>
+	<description>SyntacticException.</description>
+	<input>(max5, 6, 8)</input>
+	<exception>FunctionCallException</exception>
+</test-case>
+
+<test-case>
+	<id>C016</id>
+	<description>A simple expression with min.</description>
+	<input>MIN(7e3,3.14e-0)</input>
+	<output>3.14</output>
+</test-case>
+
+</test-case-definitions>

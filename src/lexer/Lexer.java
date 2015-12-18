@@ -2,6 +2,11 @@ package lexer;
 
 import exceptions.*;
 
+/**
+ * 词法分析器。
+ * @author Donald
+ *
+ */
 public class Lexer {
 
 	/*
@@ -178,13 +183,13 @@ public class Lexer {
 			//埋坑，由于操作符和操作数不在同一个堆栈中，有些语法错误只能在词法分析中抛出。。。
 			if (curChar == ')') {
 				if (index - 1 >= 0) {
-					if (fixString.charAt(index - 1 ) == '(')
+					if (fixString.charAt(index - 1) == '(')
 						throw new MissingOperandException();
 				}
 			}
 			if (curChar == ':') {
 				if (index - 1 >= 0) {
-					if (fixString.charAt(index - 1 ) == '?')
+					if (fixString.charAt(index - 1) == '?')
 						throw new MissingOperandException();
 				}
 			}

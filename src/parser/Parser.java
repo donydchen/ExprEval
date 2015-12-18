@@ -105,7 +105,8 @@ public class Parser {
 		if (cnt > 0) {
 			if (operands.size() < cnt) 
 				throw new MissingOperandException();
-			
+			if (func.equals("sin") || func.equals("cos"))
+				throw new FunctionCallException();			
 			Double topValue = 0.0;
 			for (int i = 0; i < cnt; i++) {
 				tempOperand = operands.pop();
@@ -118,14 +119,19 @@ public class Parser {
 				}
 			}
 		}
-		//do sin and cos 以及只有一个数值的max和min
+		//do sin and cos
 		else {
-			Double radians = Math.toRadians(((CalDecimal)tempOperand).getValue()); //将度数转换为弧度
+			//Double radians = Math.toRadians(((CalDecimal)tempOperand).getValue()); //将度数转换为弧度
+			Double radians = ((CalDecimal)tempOperand).getValue();
 			if(func.equals("sin")) {
 				ansValue = Math.sin( radians );
 			}
-			if (func.equals("cos")) {
+			else if (func.equals("cos")) {
 				ansValue = Math.cos( radians );
+			}
+			//如果是min和max但只有一个操作数
+			else {
+				throw new MissingOperandException();
 			}
 		}
 		operands.push(new CalDecimal(Double.toString(ansValue)));
@@ -394,7 +400,7 @@ public class Parser {
 				case OPP.ERRRIGHTPAR:
 					throw new MissingRightParenthesisException();
 				case OPP.ERRTRINA:
-					throw new TypeMismatchedException();
+					throw new TrinaryOperationException();
 				default:
 					break;
 				}
