@@ -2,10 +2,14 @@ package parser;
 
 import java.util.Arrays;
 import java.util.Stack;
+
+import exceptions.DividedByZeroException;
+import exceptions.ExpressionException;
 import exceptions.FunctionCallException;
 import exceptions.LexicalException;
 import exceptions.MissingLeftParenthesisException;
 import exceptions.MissingOperandException;
+import exceptions.MissingOperatorException;
 import exceptions.MissingRightParenthesisException;
 import exceptions.SyntacticException;
 import exceptions.TrinaryOperationException;
@@ -37,10 +41,14 @@ public class Parser {
 	 * 存储当前读入的词法单元。
 	 */
 	protected Token curToken = new Token();
-	/*
+	/**
 	 * 存储操作符堆栈栈顶元素
 	 */
 	protected Token topToken = new Token();
+	/**
+	 * 定义两个Double比较的精度
+	 */
+	private static final Double EPSILON = 0.00000001;
 	
 	/**
 	 * 初始化两个堆栈.
@@ -82,17 +90,22 @@ public class Parser {
 	 * @param cnt
 	 * @param func
 	 * @throws FunctionCallException 
+	 * @throws MissingOperandException 
 	 */
-	private void doFunction(int cnt, String func) throws FunctionCallException {
+	private void doFunction(int cnt, String func) throws SyntacticException {
+		if (operands.size() == 0) {
+			throw new MissingOperandException();
+		}
 		Token tempOperand = operands.pop();
 		if (tempOperand.getType().intern() != "Decimal") {
 			throw new FunctionCallException();
 		}
-		Double ansValue = 0.0;
-		
+		Double ansValue = ((CalDecimal)tempOperand).getValue();
+		//do max and min
 		if (cnt > 0) {
-			//do max and min
-			ansValue = ((CalDecimal)tempOperand).getValue();
+			if (operands.size() < cnt) 
+				throw new MissingOperandException();
+			
 			Double topValue = 0.0;
 			for (int i = 0; i < cnt; i++) {
 				tempOperand = operands.pop();
@@ -105,13 +118,14 @@ public class Parser {
 				}
 			}
 		}
+		//do sin and cos 以及只有一个数值的max和min
 		else {
-			//do sin and cos
+			Double radians = Math.toRadians(((CalDecimal)tempOperand).getValue()); //将度数转换为弧度
 			if(func.equals("sin")) {
-				ansValue = Math.sin( ((CalDecimal)tempOperand).getValue() );
+				ansValue = Math.sin( radians );
 			}
 			if (func.equals("cos")) {
-				ansValue = Math.cos( ((CalDecimal)tempOperand).getValue() );
+				ansValue = Math.cos( radians );
 			}
 		}
 		operands.push(new CalDecimal(Double.toString(ansValue)));
@@ -128,7 +142,9 @@ public class Parser {
 	/**
 	 * 单目运算的归约。
 	 */
-	private void unaryReduce() {
+	private void unaryReduce() throws SyntacticException{
+		if (operands.empty())
+			throw new MissingOperandException();
 		CalOperator tempOperator = (CalOperator)operators.pop();  //读取符号堆栈栈顶元素并移除
 		Token tempOperand = operands.pop();
 		if (tempOperator.getLable().equals("-")) {
@@ -147,8 +163,11 @@ public class Parser {
 	/**
 	 * 双目运算归约。
 	 * @throws TypeMismatchedException 
+	 * @throws DividedByZeroException 
 	 */
-	private void binaryReduce() throws TypeMismatchedException {
+	private void binaryReduce() throws TypeMismatchedException, SyntacticException, DividedByZeroException {
+		if (operands.size() < 2)
+			throw new MissingOperandException();
 		CalOperator tempOperator = (CalOperator)operators.pop(); //获取栈顶符号并移除
 		Token operandB = operands.pop();
 		Token operandA = operands.pop();
@@ -166,6 +185,8 @@ public class Parser {
 				case '*':
 					valueC = valueA * valueB; break;			
 				case '/':
+					if (Math.abs(valueB - 0.0) < EPSILON)
+						throw new DividedByZeroException();
 					valueC = valueA / valueB; break;
 				case '^':
 					valueC = Math.pow(valueA, valueB); break;
@@ -205,9 +226,13 @@ public class Parser {
 				Double valueB = ((CalDecimal)operandB).getValue();
 				Boolean boolC = false;
 				String operLexeme = tempOperator.getLexeme();
-				if ( (operLexeme.equals(">") && valueA > valueB) || (operLexeme.equals("<") && valueA < valueB) || 
-					 (operLexeme.equals("=") && valueA ==valueB) || (operLexeme.equals(">=")&& valueA >= valueB) ||
-					 (operLexeme.equals("<=")&& valueA <=valueB) || (operLexeme.equals("<>")&& valueA != valueB)) {
+				//由于浮点数的精度问题，不能直接比较两个Double之间的相等性，所以此处改为判断两个double之间的大小相差小于epsilon来确定相等
+				if ( (operLexeme.equals(">") && valueA > valueB) || 
+					 (operLexeme.equals("<") && valueA < valueB) || 
+					 (operLexeme.equals("=") && (Math.abs(valueA - valueB) < EPSILON) ) || 
+					 (operLexeme.equals(">=")&& ( (valueA > valueB) || (Math.abs(valueA - valueB) < EPSILON)) ) ||
+					 (operLexeme.equals("<=")&& ( (valueA < valueB) || (Math.abs(valueA - valueB) < EPSILON)) ) || 
+					 (operLexeme.equals("<>")&& (Math.abs(valueA - valueB) >= EPSILON)) ) {
 					boolC = true;
 				}
 				operands.push(new CalBoolean(Boolean.toString(boolC)));
@@ -223,7 +248,10 @@ public class Parser {
 	 * @throws TrinaryOperationException
 	 * @throws TypeMismatchedException
 	 */
-	private void trinaryReduce() throws TrinaryOperationException, TypeMismatchedException {
+	private void trinaryReduce() throws TrinaryOperationException, TypeMismatchedException, SyntacticException {
+		if (operands.size() < 3 || operators.size() < 3) {
+			throw new MissingOperandException();
+		}
 		CalOperator operatorB = (CalOperator)operators.pop();
 		CalOperator operatorA = (CalOperator)operators.pop();
 		Token operandC = operands.pop();
@@ -253,9 +281,10 @@ public class Parser {
 	 * 括号运算以及函数运算归约。
 	 * @throws TypeMismatchedException
 	 * @throws SyntacticException
+	 * @throws DividedByZeroException 
 	 * @see doFunction
 	 */
-	private void matchReduce() throws TypeMismatchedException, SyntacticException {	
+	private void matchReduce() throws TypeMismatchedException, SyntacticException, DividedByZeroException {	
 		Token tempOperator = operators.peek();
 		int cntComma = 0;
 		Boolean matchCompleted = false;
@@ -296,6 +325,7 @@ public class Parser {
 		//如果是function的话，接着执行function操作，否则结束运算。
 		if (tempOperator.getType().equals("Function")) {
 			doFunction(cntComma, ((CalFunction)tempOperator).getLexeme());
+			operators.pop(); // 函数预算执行结束，将函数pop掉
 		}		
 		
 	}
@@ -307,9 +337,9 @@ public class Parser {
 	 * @throws LexicalException
 	 * @throws TypeMismatchedException
 	 * @throws SyntacticException
+	 * @throws DividedByZeroException 
 	 */
-	public Double parsing(String expression) throws LexicalException, TypeMismatchedException, 
-	SyntacticException {
+	public Double parsing(String expression) throws ExpressionException {
 		
 		Lexer lexer = new Lexer(expression);
 		curToken = lexer.getNextToken();
@@ -349,6 +379,7 @@ public class Parser {
 					break;
 				case OPP.RDMATCH:
 					matchReduce();
+					curToken = lexer.getNextToken(); //做完括号运算后，右括号就没用了，应该再读入一个新的Token
 					break;
 				case OPP.ERRLEFTPAR:
 					throw new MissingLeftParenthesisException();
@@ -376,7 +407,7 @@ public class Parser {
 				return ((CalDecimal)operands.peek()).getValue();
 			}
 			else {
-				throw new SyntacticException();
+				throw new MissingOperatorException();
 			}
 		}
 		else {
