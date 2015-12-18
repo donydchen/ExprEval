@@ -1,19 +1,22 @@
 package parser;
 
-import java.lang.reflect.Array;
 import java.util.Arrays;
 import java.util.Stack;
-import java.util.regex.Matcher;
-
-import javax.xml.parsers.DocumentBuilder;
-
 import exceptions.FunctionCallException;
 import exceptions.LexicalException;
 import exceptions.MissingLeftParenthesisException;
+import exceptions.MissingOperandException;
+import exceptions.MissingRightParenthesisException;
 import exceptions.SyntacticException;
 import exceptions.TrinaryOperationException;
 import exceptions.TypeMismatchedException;
-import lexer.*;
+import lexer.CalBoolean;
+import lexer.CalDecimal;
+import lexer.CalFunction;
+import lexer.CalOperator;
+import lexer.Dollar;
+import lexer.Lexer;
+import lexer.Token;
 
 public class Parser {
 
@@ -56,10 +59,10 @@ public class Parser {
 	 */
 	private String getLabel(Token temp) {
 		String tempType = temp.getType();
-		if (tempType == "Function") {
+		if (tempType.equals("Function")) {
 			return ((CalFunction)temp).getLabel();
 		}
-		if (tempType == "Operator") {
+		if (tempType.equals("Operator")) {
 			return ((CalOperator)temp).getLable();
 		}
 		return ((Dollar)temp).getLabel();
@@ -82,17 +85,36 @@ public class Parser {
 	 */
 	private void doFunction(int cnt, String func) throws FunctionCallException {
 		Token tempOperand = operands.pop();
-		if (tempOperand.getType() != "Decimal") {
+		if (tempOperand.getType().intern() != "Decimal") {
 			throw new FunctionCallException();
 		}
-		Token ansOperand = new Token();
+		Double ansValue = 0.0;
 		
 		if (cnt > 0) {
 			//do max and min
+			ansValue = ((CalDecimal)tempOperand).getValue();
+			Double topValue = 0.0;
+			for (int i = 0; i < cnt; i++) {
+				tempOperand = operands.pop();
+				topValue = ((CalDecimal)tempOperand).getValue();
+				if (func.equals("max") && topValue > ansValue) {
+					ansValue = topValue; 
+				}
+				if (func.equals("min") && topValue < ansValue) {
+					ansValue = topValue;
+				}
+			}
 		}
 		else {
 			//do sin and cos
+			if(func.equals("sin")) {
+				ansValue = Math.sin( ((CalDecimal)tempOperand).getValue() );
+			}
+			if (func.equals("cos")) {
+				ansValue = Math.cos( ((CalDecimal)tempOperand).getValue() );
+			}
 		}
+		operands.push(new CalDecimal(Double.toString(ansValue)));
 	}
 	
 	/**
@@ -109,12 +131,12 @@ public class Parser {
 	private void unaryReduce() {
 		CalOperator tempOperator = (CalOperator)operators.pop();  //读取符号堆栈栈顶元素并移除
 		Token tempOperand = operands.pop();
-		if (tempOperator.getLable() == "-") {
+		if (tempOperator.getLable().equals("-")) {
 			Double tempValue = ((CalDecimal)tempOperand).getValue();
 			tempValue = 0 - tempValue;
 			((CalDecimal)tempOperand).setValue(tempValue);
 		}
-		if (tempOperator.getLable() == "!") {
+		if (tempOperator.getLable().equals("!")) {
 			Boolean tempValue = ((CalBoolean)tempOperand).getValue();
 			tempValue = !tempValue;
 			((CalBoolean)tempOperand).setValue(tempValue);			
@@ -131,8 +153,8 @@ public class Parser {
 		Token operandB = operands.pop();
 		Token operandA = operands.pop();
 		// 执行 + - * / ^
-		if (tempOperator.getLable() == "pm" || tempOperator.getLable() == "md" || tempOperator.getLable() == "^") {
-			if (operandA.getType() == "Decimal" && operandB.getType() == "Decimal") {
+		if (tempOperator.getLable().equals("pm") || tempOperator.getLable().equals("md") || tempOperator.getLable().equals("^")) {
+			if (operandA.getType().equals("Decimal") && operandB.getType().equals("Decimal")) {
 				Double valueA = ((CalDecimal)operandA).getValue();
 				Double valueB = ((CalDecimal)operandB).getValue();
 				Double valueC = 0.0;
@@ -157,8 +179,8 @@ public class Parser {
 			}
 		}
 		//执行 & |
-		if (tempOperator.getLable() == "&" || tempOperator.getLable() == "|") {
-			if (operandA.getType() == "Boolean" && operandB.getType() == "Boolean") {
+		if (tempOperator.getLable().equals("&") || tempOperator.getLable().equals("|")) {
+			if (operandA.getType().equals("Boolean") && operandB.getType().equals("Boolean")) {
 				Boolean boolA = ((CalBoolean)operandA).getValue();
 				Boolean boolB = ((CalBoolean)operandB).getValue();
 				Boolean boolC = false;
@@ -177,15 +199,15 @@ public class Parser {
 			}
 		}
 		//执行关系运算，> < = >= <= <>
-		if (tempOperator.getLable() == "cmp") {
-			if (operandA.getType() == "Decimal" && operandB.getType() == "Decimal") {
+		if (tempOperator.getLable().equals("cmp")) {
+			if (operandA.getType().equals("Decimal") && operandB.getType().equals("Decimal")) {
 				Double valueA = ((CalDecimal)operandA).getValue();
 				Double valueB = ((CalDecimal)operandB).getValue();
 				Boolean boolC = false;
 				String operLexeme = tempOperator.getLexeme();
-				if ( (operLexeme == ">" && valueA > valueB) || (operLexeme == "<" && valueA < valueB) || 
-					 (operLexeme == "=" && valueA ==valueB) || (operLexeme == ">="&& valueA >= valueB) ||
-					 (operLexeme == "<="&& valueA <=valueB) || (operLexeme == "<>"&& valueA != valueB)) {
+				if ( (operLexeme.equals(">") && valueA > valueB) || (operLexeme.equals("<") && valueA < valueB) || 
+					 (operLexeme.equals("=") && valueA ==valueB) || (operLexeme.equals(">=")&& valueA >= valueB) ||
+					 (operLexeme.equals("<=")&& valueA <=valueB) || (operLexeme.equals("<>")&& valueA != valueB)) {
 					boolC = true;
 				}
 				operands.push(new CalBoolean(Boolean.toString(boolC)));
@@ -207,8 +229,8 @@ public class Parser {
 		Token operandC = operands.pop();
 		Token operandB = operands.pop();
 		Token operandA = operands.pop();
-		if (operatorA.getLexeme() == "?" && operatorB.getLexeme() == ":") {
-			if (operandA.getType() == "Boolean" && operandB.getType() == "Decimal" && operandC.getType() == "Decimal") {
+		if (operatorA.getLexeme().equals("?") && operatorB.getLexeme().equals(":")) {
+			if (operandA.getType().equals("Boolean") && operandB.getType().equals("Decimal") && operandC.getType().equals("Decimal")) {
 				Double valueD = 0.0;
 				if ( ((CalBoolean)operandA).getValue() ) {
 					valueD = ((CalDecimal)operandB).getValue(); 
@@ -227,16 +249,24 @@ public class Parser {
 		}
 	}
 	
+	/**
+	 * 括号运算以及函数运算归约。
+	 * @throws TypeMismatchedException
+	 * @throws SyntacticException
+	 * @see doFunction
+	 */
 	private void matchReduce() throws TypeMismatchedException, SyntacticException {	
 		Token tempOperator = operators.peek();
 		int cntComma = 0;
-		while (true) {
-			if (tempOperator.getType() == "Dollar") {
+		Boolean matchCompleted = false;
+		while (!matchCompleted) {
+			if (tempOperator.getType().equals("Dollar")) {
 				throw new MissingLeftParenthesisException();
 			}
 			else {
-				if (((CalOperator)tempOperator).getLexeme() == "(") {
+				if (((CalOperator)tempOperator).getLexeme().equals("(")) {
 					operators.pop(); //移除（
+					matchCompleted = true;
 					break;
 				}
 				//保存操作符需要的操作数数量
@@ -251,7 +281,7 @@ public class Parser {
 				else if (cntComma == 0 && tempNum == 3) {
 					trinaryReduce();
 				}
-				else if (((CalOperator)tempOperator).getLexeme() == ",") { //该操作符是,
+				else if (((CalOperator)tempOperator).getLexeme().equals(",")) { //该操作符是,
 					operators.pop();
 					cntComma++;
 				}
@@ -264,13 +294,20 @@ public class Parser {
 		
 		tempOperator = operators.peek();
 		//如果是function的话，接着执行function操作，否则结束运算。
-		if (tempOperator.getType() == "Function") {
+		if (tempOperator.getType().equals("Function")) {
 			doFunction(cntComma, ((CalFunction)tempOperator).getLexeme());
 		}		
 		
 	}
 	
-	
+	/**
+	 * 执行语法分析和语义动作。
+	 * @param expression
+	 * @return
+	 * @throws LexicalException
+	 * @throws TypeMismatchedException
+	 * @throws SyntacticException
+	 */
 	public Double parsing(String expression) throws LexicalException, TypeMismatchedException, 
 	SyntacticException {
 		
@@ -284,7 +321,7 @@ public class Parser {
 		
 		while(!completed) {
 			topToken = operators.peek();
-			if (curToken.getType() == "Boolean" || curToken.getType() == "Decimal") {
+			if (curToken.getType().equals("Boolean") || curToken.getType().equals("Decimal")) {
 				operands.push(curToken);
 				curToken = lexer.getNextToken();
 				continue;
@@ -313,9 +350,20 @@ public class Parser {
 				case OPP.RDMATCH:
 					matchReduce();
 					break;
-					
-					
-
+				case OPP.ERRLEFTPAR:
+					throw new MissingLeftParenthesisException();
+				case OPP.ERRSYN:
+					throw new SyntacticException();
+				case OPP.ERROPERAND:
+					throw new MissingOperandException();
+				case OPP.ERRTYPE:
+					throw new TypeMismatchedException();
+				case OPP.ERRFUNCSYN:
+					throw new FunctionCallException();
+				case OPP.ERRRIGHTPAR:
+					throw new MissingRightParenthesisException();
+				case OPP.ERRTRINA:
+					throw new TypeMismatchedException();
 				default:
 					break;
 				}
@@ -324,7 +372,17 @@ public class Parser {
 		
 		if (completed) {
 			//return the ans;
+			if (operands.size() == 1 && operands.peek().getType().equals("Decimal")) {
+				return ((CalDecimal)operands.peek()).getValue();
+			}
+			else {
+				throw new SyntacticException();
+			}
 		}
+		else {
+			throw new SyntacticException();
+		}
+		
 	}
 	
 	

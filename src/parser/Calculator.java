@@ -6,9 +6,6 @@
 package parser;
 
 import exceptions.*;
-import lexer.CalDecimal;
-import lexer.Lexer;
-import lexer.Token;
 
 /**
  * Main program of the expression based calculator ExprEval
@@ -31,9 +28,8 @@ public class Calculator
 	{
 		// You should substitute this method body ...
 		//double result = ((int) (Math.random() * 1000000000)) / 100.0;
-		Lexer ans = new Lexer(expression);
-		Token temp = ans.getNextToken();
-		double result = ((CalDecimal)temp).getValue();
+		Parser parser = new Parser();
+		double result = parser.parsing(expression);
 		return result;
 	}
 }

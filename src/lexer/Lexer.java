@@ -19,7 +19,7 @@ public class Lexer {
 	/*
 	 * 存储符号种类。
 	 */
-	protected final String opers = "+-*/^?:><=&|!";
+	protected final String opers = "+-*/^?:><=&|!()";
 	
 	public Lexer(String expression) {
 		inputString = expression;
@@ -32,13 +32,18 @@ public class Lexer {
 		 * 记录修改过后的字符串的长度。
 		 */
 		int strLen = fixString.length();	
-		/*
+		/**
 		 * 判断全是空字符串
 		 */
 		if (strLen == 0) {
 			throw new exceptions.LexicalException();//全是空字符
 		}
-		/*
+		//已经读完了全部字符
+		if (index >= strLen) {
+			return new Dollar();
+		}
+		
+		/**
 		 * 记录当前位置的字符。
 		 */
 		Character curChar = fixString.charAt(index);
@@ -49,10 +54,12 @@ public class Lexer {
 			Boolean eFlag = false;
 			int startInt = index;
 			int endInt = strLen;
-			for (int j = index + 1; j < strLen; j++) {
+			for (int j = startInt + 1; j < strLen; j++) {
 				char peek = fixString.charAt(j);
-				if (Character.isDigit(peek)) 
+				if (Character.isDigit(peek)) {
+					index++; //更新index
 					continue;
+				}
 				else if (peek == '.') {
 					if (eFlag) 
 						throw new exceptions.LexicalException(); //小数点出现在指数部分
@@ -84,7 +91,7 @@ public class Lexer {
 				}
 				else if (peek == '-' || peek == '+') {
 					if ( !(fixString.charAt(j-1) == 'e') ) {
-						index = j;
+						index = j - 1;
 						endInt = j;
 						break;
 					}
@@ -92,16 +99,17 @@ public class Lexer {
 						throw new exceptions.LexicalException(); //e后面的'+'‘-’后面必须要有数字
 				}
 				else {
-					index = j;
+					index = j - 1; //为了配合for循环外的index++，此处必须回退一位。
 					endInt = j;
 					break;
 				}
 			}
+			index++; //当最后一个数字是个位数，将不会进入上面的for循环，但此时的index仍然必须加1
 			return new CalDecimal(fixString.substring(startInt, endInt));
 		}
 		
 		//判断布尔式子
-		if (curChar == 't' || curChar == 'f') {
+		else if (curChar == 't' || curChar == 'f') {
 			String boolStrLow = "";
 			if (curChar == 't') {
 				boolStrLow = fixString.substring(index, index+4);
@@ -125,7 +133,7 @@ public class Lexer {
 		}
 		
 		//判断函数
-		if (curChar == 's' || curChar == 'c' || curChar == 'm') {
+		else if (curChar == 's' || curChar == 'c' || curChar == 'm') {
 			String funcLow = fixString.substring(index, index+3);
 			if (funcLow == "sin" || funcLow == "cos" || funcLow == "max" || funcLow == "min") {
 				index += 3;
@@ -137,7 +145,7 @@ public class Lexer {
 		}
 		
 		//判断符号
-		if (opers.indexOf(curChar) != -1) {
+		else if (opers.indexOf(curChar) != -1) {
 			if (curChar == '>') {
 				if (index < strLen - 1) {
 					if (fixString.charAt(index+1) == '=') {
@@ -176,12 +184,10 @@ public class Lexer {
 		}
 		
 		//如果出现其他类型，则抛出异常
-		if (index < strLen) {
+		else {
 			throw new exceptions.LexicalException(); //出现其他非法字符。
 		}
 		
-		//返回终结符
-		return new Dollar();
 	}
 	
 	public String getFixString() {

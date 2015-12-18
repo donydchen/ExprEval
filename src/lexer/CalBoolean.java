@@ -6,7 +6,7 @@ public class CalBoolean extends Token {
 	
 	public CalBoolean(String temp) {
 		type = "Boolean";
-		if (temp == "true")
+		if (temp.equals("true") )
 			value = true;
 		else {
 			value = false;

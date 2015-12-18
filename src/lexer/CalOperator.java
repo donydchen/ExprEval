@@ -7,20 +7,24 @@ public class CalOperator extends Token {
 	public CalOperator(String Oper) {
 		type = "Operator";
 		lexeme = Oper;
-		if(Oper=="+" || Oper == "-") {
+		/*
+		 * The string.equal function checks the actual contents of the string, 
+		 * the == operator checks whether the references to the objects are equal
+		 */
+		if(Oper.equals("+") || Oper.equals("-") ) {
 			label = "pm";
 		}
-		else if(Oper == "*" || Oper == "/") {
+		else if(Oper.equals("*") || Oper.equals("/")) {
 			label = "md";
 		}
-		else if(Oper == "minus") {
+		else if(Oper.equals("minus")) {
 			label = "-";
 		}
-		else if (Oper == "=" || Oper == "<" || Oper == ">" || Oper == "<="
-				|| Oper == ">=" || Oper == "<>") {
+		else if (Oper.equals("=") || Oper.equals("<") || Oper.equals(">") ||
+				Oper.equals("<=") || Oper.equals(">=") || Oper.equals("<>")) {
 			label = "cmp";
 		}
-		//°üÀ¨ ^ , & | ? : !
+		//°üÀ¨ ^ , & | ? : ! ( )
 		else {
 			label = Oper;
 		}
@@ -48,16 +52,18 @@ public class CalOperator extends Token {
 	 */
 	public int getNum() {
 		int num = 0;
-		if (label == "-" || label == "!") {
+				
+		if (label.equals("-") || label.equals("!")) {
 			num = 1;
 		}
-		if (label == "pm" || label == "md" || label == "^" || label == "&" || label == "|" ||
-				label == "cmp") {
+		if (label.equals("pm") || label.equals("md") || label.equals("^") ||
+				label.equals("&") || label.equals("|") || label.equals("cmp")) {
 			num = 2;
 		}
-		if (label == "?" || label == ":") {
+		if (label.equals("?") || label.equals(":")) {
 			num = 3;
 		}
+		
 		return num;			
 	}
 }
