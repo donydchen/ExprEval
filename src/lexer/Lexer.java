@@ -4,42 +4,45 @@ import exceptions.*;
 
 /**
  * 词法分析器。
+ * 读取表达式并将其中元素分为设定好的四种词法单元。
  * @author Donald
- *
  */
 public class Lexer {
-
-	/*
+	/**
 	 * 标记当前指针位置
 	 */
 	protected int index;
-	/*
+	/**
 	 * 存储读取进来的原始字符串。
 	 */
 	protected String inputString;
-	/*
+	/**
 	 * 存取修改过后的输入字符串。修改指的是变为小写，去除空格
 	 */
 	protected String fixString;
-	/*
+	/**
 	 * 存储符号种类。
 	 */
 	protected final String opers = "+-*/^?:><=&|!(),";
-	
+	/**
+	 * 初始化词法分析器。包括将读入的表达式转化为小写并去除全部空格，以及将当前指针初始化为0.
+	 * @param expression  表达式字符串
+	 */
 	public Lexer(String expression) {
 		inputString = expression;
 		fixString = inputString.toLowerCase().replace(" ", "");
 		index = 0;
 	}
-	
+	/**
+	 * 获取下一个词法单元。
+	 * @return 读取到的词法单元
+	 * @throws LexicalException
+	 * @throws ExpressionException
+	 */
 	public Token getNextToken() throws LexicalException, ExpressionException {
-		/*
-		 * 记录修改过后的字符串的长度。
-		 */
+		//记录修改过后的字符串的长度。	 
 		int strLen = fixString.length();	
-		/**
-		 * 判断全是空字符串
-		 */
+		//判断全是空字符串
 		if (strLen == 0) {
 			throw new EmptyExpressionException();//全是空字符
 		}
@@ -48,9 +51,7 @@ public class Lexer {
 			return new Dollar();
 		}
 		
-		/**
-		 * 记录当前位置的字符。
-		 */
+		//记录当前位置的字符。
 		Character curChar = fixString.charAt(index);
 				
 		//判断Decimal
@@ -203,12 +204,12 @@ public class Lexer {
 			if (curChar == '.') {
 				if (index + 1 < fixString.length()) {
 					if (Character.isDigit(fixString.charAt(index+1)))
-						throw new IllegalDecimalException();
+						throw new IllegalDecimalException();//小数点开头
 					else 
-						throw new LexicalException();
+						throw new LexicalException();//小数点开头且后面接的不是数字
 				}
 				else 
-					throw new LexicalException();
+					throw new LexicalException();//小数点开头并且是最后一位
 			}
 			else if (Character.isAlphabetic(curChar)) {
 				throw new IllegalIdentifierException(); //字母开头但不是函数
@@ -218,7 +219,10 @@ public class Lexer {
 		}
 		
 	}
-	
+	/**
+	 * 获取经过去除空格以及变为小写之后的表达式字符串
+	 * @return 经过去除空格以及变为小写之后的表达式字符串
+	 */
 	public String getFixString() {
 		return fixString;
 	}

@@ -2,26 +2,19 @@ package parser;
 
 import java.util.Arrays;
 import java.util.Stack;
+import exceptions.*;
+import lexer.*;
 
-import exceptions.DividedByZeroException;
-import exceptions.ExpressionException;
-import exceptions.FunctionCallException;
-import exceptions.LexicalException;
-import exceptions.MissingLeftParenthesisException;
-import exceptions.MissingOperandException;
-import exceptions.MissingOperatorException;
-import exceptions.MissingRightParenthesisException;
-import exceptions.SyntacticException;
-import exceptions.TrinaryOperationException;
-import exceptions.TypeMismatchedException;
-import lexer.CalBoolean;
-import lexer.CalDecimal;
-import lexer.CalFunction;
-import lexer.CalOperator;
-import lexer.Dollar;
-import lexer.Lexer;
-import lexer.Token;
-
+/**
+ * 语法分析及语义处理程序。
+ * 此类为本实验的核心，它通过调用词法分析器lexer来获取词法单元，然后依据算符优先关系移入归约表以及BNF来
+ * 对读入的词法单元执行相应的语义动作。<br>
+ * 由于算符优先分析法只比较符号之间的优先关系，所以此parser中将符号以及函数存在一个堆栈operators中，
+ * 而将十进制数以及布尔值存放在于另外一个堆栈operands中。<br>
+ * 如果表达式格式正确，最后运行的结果将会是operands堆栈的栈顶元素。
+ * @author Donald
+ *
+ */
 public class Parser {
 
 	/**
@@ -51,7 +44,7 @@ public class Parser {
 	private static final Double EPSILON = 0.00000001;
 	
 	/**
-	 * 初始化两个堆栈.
+	 * 初始化两个堆栈。并将Dollar符号压入操作符堆栈中。
 	 */
 	public Parser() {
 		operators.clear();
@@ -62,8 +55,8 @@ public class Parser {
 	
 	/**
 	 * 获取相应词法单元的label
-	 * @param temp
-	 * @return
+	 * @param temp  词法单元
+	 * @return 该词法单元在OPP符号表中所对应的标记
 	 */
 	private String getLabel(Token temp) {
 		String tempType = temp.getType();
@@ -78,8 +71,8 @@ public class Parser {
 	
 	/**
 	 * 获取词法单元label在LABEL_ARRAY中对应的下标
-	 * @param label
-	 * @return
+	 * @param label  符号表中的词法单元标记
+	 * @return 词法单元在符号表中对应的下标
 	 */
 	private int getIndex(String label) {
 		return Arrays.asList(LABEL_ARRAY).indexOf(label);
@@ -87,10 +80,11 @@ public class Parser {
 	
 	/**
 	 * 执行函数操作。
-	 * @param cnt
-	 * @param func
-	 * @throws FunctionCallException 
-	 * @throws MissingOperandException 
+	 * 执行包括sin,cos,max和min这四个函数的操作。它从operands堆栈中读取操作数，
+	 * 最后将得到的结果压入operands堆栈中
+	 * @param cnt  逗号的数量，用来确定max和min函数所用的操作数个数。
+	 * @param func  函数的名字
+	 * @throws SyntacticException
 	 */
 	private void doFunction(int cnt, String func) throws SyntacticException {
 		if (operands.size() == 0) {
@@ -139,7 +133,7 @@ public class Parser {
 	
 	/**
 	 * 将符号词法单元压入operators堆栈中。
-	 * @param oper
+	 * @param oper  符号词法单元
 	 */
 	private void shift(Token oper) {
 		operators.push(oper);
@@ -147,6 +141,9 @@ public class Parser {
 	
 	/**
 	 * 单目运算的归约。
+	 * 执行取反(!)和负数(-)这两个操作。从operands中读取一个操作数，
+	 * 运算得到的结果压入operands堆栈中。
+	 * @throws SyntacticException
 	 */
 	private void unaryReduce() throws SyntacticException{
 		if (operands.empty())
@@ -168,8 +165,11 @@ public class Parser {
 	
 	/**
 	 * 双目运算归约。
+	 * 执行加，减，乘，除，取幂，关系运算，取与，取或这些二元算符归约。从operands堆栈中读取两个
+	 * 操作数，运算得到的结果压入operands堆栈中。
 	 * @throws TypeMismatchedException 
 	 * @throws DividedByZeroException 
+	 * @throws SyntacticException
 	 */
 	private void binaryReduce() throws TypeMismatchedException, SyntacticException, DividedByZeroException {
 		if (operands.size() < 2)
@@ -251,8 +251,10 @@ public class Parser {
 	
 	/**
 	 * 三目运算归约。
+	 * 执行选择运算(?:)三元运算的归约。从operands堆栈中读取三个操作数，运算得到的结果压入operands堆栈中。
 	 * @throws TrinaryOperationException
 	 * @throws TypeMismatchedException
+	 * @throws SyntacticException
 	 */
 	private void trinaryReduce() throws TrinaryOperationException, TypeMismatchedException, SyntacticException {
 		if (operands.size() < 3 || operators.size() < 3) {
@@ -264,7 +266,8 @@ public class Parser {
 		Token operandB = operands.pop();
 		Token operandA = operands.pop();
 		if (operatorA.getLexeme().equals("?") && operatorB.getLexeme().equals(":")) {
-			if (operandA.getType().equals("Boolean") && operandB.getType().equals("Decimal") && operandC.getType().equals("Decimal")) {
+			if (operandA.getType().equals("Boolean") && operandB.getType().equals("Decimal") 
+					&& operandC.getType().equals("Decimal")) {
 				Double valueD = 0.0;
 				if ( ((CalBoolean)operandA).getValue() ) {
 					valueD = ((CalDecimal)operandB).getValue(); 
@@ -285,10 +288,11 @@ public class Parser {
 	
 	/**
 	 * 括号运算以及函数运算归约。
+	 * 当读到右括号时，执行此归约。最后判断左括号的左边是否有函数符号，有则通过调用doFunction函数来继续执行函数运算归约。
 	 * @throws TypeMismatchedException
 	 * @throws SyntacticException
 	 * @throws DividedByZeroException 
-	 * @see doFunction
+	 * @see Parser#doFunction(int, String)
 	 */
 	private void matchReduce() throws TypeMismatchedException, SyntacticException, DividedByZeroException {	
 		Token tempOperator = operators.peek();
@@ -338,12 +342,9 @@ public class Parser {
 	
 	/**
 	 * 执行语法分析和语义动作。
-	 * @param expression
-	 * @return
-	 * @throws LexicalException
-	 * @throws TypeMismatchedException
-	 * @throws SyntacticException
-	 * @throws DividedByZeroException 
+	 * @param expression  表达式字符串
+	 * @return 表达式运算结果
+	 * @throws ExpressionException
 	 */
 	public Double parsing(String expression) throws ExpressionException {
 		
@@ -353,8 +354,7 @@ public class Parser {
 		int action = 0;
 		int lableStackIndex;
 		int lableReadIndex;
-		
-		
+				
 		while(!completed) {
 			topToken = operators.peek();
 			if (curToken.getType().equals("Boolean") || curToken.getType().equals("Decimal")) {
@@ -408,19 +408,21 @@ public class Parser {
 		}
 		
 		if (completed) {
-			//return the ans;
-			if (operands.size() == 1 && operands.peek().getType().equals("Decimal")) {
-				return ((CalDecimal)operands.peek()).getValue();
+			if (operands.size() == 1) {
+				if (operands.peek().getType().equals("Decimal"))
+					return ((CalDecimal)operands.peek()).getValue();
+				//结果只有一个操作数但是类型是布尔值的，抛出错误类型错误。
+				else
+					throw new TypeMismatchedException();
 			}
+			//最后操作数堆栈中有多于一个操作数，抛出缺少操作符错误。
 			else {
 				throw new MissingOperatorException();
 			}
 		}
 		else {
 			throw new SyntacticException();
-		}
+		}		
+	} //end of parsing
 		
-	}
-	
-	
 }

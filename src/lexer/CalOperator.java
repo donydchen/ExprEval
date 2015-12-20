@@ -1,9 +1,23 @@
 package lexer;
 
+/**
+ * 操作符的词法单元，继承了Token类。
+ * @author Donald
+ * @see Token
+ */
 public class CalOperator extends Token {
+	/**
+	 * 存储操作符名
+	 */
 	protected String lexeme;
+	/**
+	 * 存储操作符在算符优先关系表OPP中的标记
+	 */
 	protected String label;
-	
+	/**
+	 * 初始化操作符词法单元。包括设置其类型为Operator,设置操作符名以及设置操作符在OPP中的标记。
+	 * @param Oper  保存被认为是操作符的字符串。
+	 */
 	public CalOperator(String Oper) {
 		type = "Operator";
 		lexeme = Oper;
@@ -29,26 +43,23 @@ public class CalOperator extends Token {
 			label = Oper;
 		}
 	}
-	
 	/**
 	 * 获取操作符
-	 * @return
+	 * @return 操作符
 	 */
 	public String getLexeme() {
 		return lexeme;
-	}
-	
+	}	
 	/**
 	 * 获取操作符在符号表中的标记
-	 * @return
+	 * @return 操作符在符号表中的标记
 	 */
 	public String getLable() {
 		return label;
 	}
-	
 	/**
 	 * 获取操作符是几目运算符
-	 * @return
+	 * @return 获取操作符是几目运算符
 	 */
 	public int getNum() {
 		int num = 0;
